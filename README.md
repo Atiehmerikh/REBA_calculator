@@ -1,10 +1,12 @@
 # REBA_calculator
 calculating REBA(Rapid Entire Body Assessment)
+https://ergo-plus.com/reba-assessment-tool-guide/
 
 This is the code that calculates the REBA score 
-and also The reba score for each part of the body according to REBA table, and also you can see each part of body angle(for 8 posture)
+and also The reba score for each part of the body according to REBA table,
+and also the angle of the specific joints is calculating to be able to compute REBA score (for 8 posture)
 
-#These are 9 degree
+#These are 9 specific joints
 
 Neck flexion degree,
 Neck side bending degree,
