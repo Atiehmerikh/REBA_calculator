@@ -1,66 +1,49 @@
-from pycg3d.cg3d_point import CG3dPoint
-from pycg3d.cg3d_vector import CG3dVector
 import math
-from pycg3d import utils
+import numpy as np
+import body_part_reba_calculator.body_part_numbering as bodyNum
+import body_part_reba_calculator.Util as util
 
 
-def lower_arm_score(joints,file):
-    right_shoulder_index = 2
-    left_shoulder_index = 5
-    right_elbow_index = 3
-    left_elbow_index = 6
-    right_wrist_index = 4
-    left_wrist_index = 7
+class lower_arm:
+    def __init__(self, joints_position):
+        self.joints_position = joints_position
 
-    right_shoulder_point = CG3dPoint(joints[right_shoulder_index][0], joints[right_shoulder_index][1],
-                                     joints[right_shoulder_index][2])
-    left_shoulder_point = CG3dPoint(joints[left_shoulder_index][0], joints[left_shoulder_index][1],
-                                    joints[left_shoulder_index][2])
-    right_elbow_point = CG3dPoint(joints[right_elbow_index][0], joints[right_elbow_index][1],
-                                  joints[right_elbow_index][2])
-    left_elbow_point = CG3dPoint(joints[left_elbow_index][0], joints[left_elbow_index][1],
-                                 joints[left_elbow_index][2])
-    right_wrist_point = CG3dPoint(joints[right_wrist_index][0], joints[right_wrist_index][1],
-                                  joints[right_wrist_index][2])
-    left_wrist_point = CG3dPoint(joints[left_wrist_index][0], joints[left_wrist_index][1],
-                                 joints[left_wrist_index][2])
+    def lower_arm_degree(self):
+        m_body_number = bodyNum.body_part_number()
+        right_arm_joint_numbers = m_body_number.right_arm()
+        left_arm_joint_numbers = m_body_number.left_arm()
 
-    right_shoulder_elbow_vector = CG3dVector(right_elbow_point[0] - right_shoulder_point[0],
-                                             right_elbow_point[1] - right_shoulder_point[1],
-                                             right_elbow_point[2] - right_shoulder_point[2])
-    left_shoulder_elbow_vector = CG3dVector(left_elbow_point[0] - left_shoulder_point[0],
-                                            left_elbow_point[1] - left_shoulder_point[1],
-                                            left_elbow_point[2] - left_shoulder_point[2])
+        right_shoulder_elbow_vector = self.joints_position[right_arm_joint_numbers[1]] - self.joints_position[right_arm_joint_numbers[0]]
+        left_shoulder_elbow_vector = self.joints_position[left_arm_joint_numbers[1]] - self.joints_position[left_arm_joint_numbers[0]]
 
-    right_elbow_wrist_vector = CG3dVector(right_wrist_point[0] - right_elbow_point[0],
-                                          right_wrist_point[1] - right_elbow_point[1],
-                                          right_wrist_point[2] - right_elbow_point[2])
-    left_elbow_wrist_vector = CG3dVector(left_wrist_point[0] - left_elbow_point[0],
-                                         left_wrist_point[1] - left_elbow_point[1],
-                                         left_wrist_point[2] - left_elbow_point[2])
+        right_elbow_wrist_vector = self.joints_position[right_arm_joint_numbers[2]] - self.joints_position[right_arm_joint_numbers[1]]
+        left_elbow_wrist_vector = self.joints_position[left_arm_joint_numbers[2]] - self.joints_position[left_arm_joint_numbers[1]]
 
-    # right and left arm degree in saggital plane
-    right_flexion = math.degrees(math.acos((right_shoulder_elbow_vector * right_elbow_wrist_vector) / (
-            utils.distance(right_shoulder_point, right_elbow_point) * utils.distance(right_wrist_point,
-                                                                                     right_elbow_point))))
-    left_flexion = math.degrees(math.acos((left_shoulder_elbow_vector * left_elbow_wrist_vector) / (
-            utils.distance(left_shoulder_point, left_elbow_point) * utils.distance(left_wrist_point,
-                                                                                   left_elbow_point))))
-    lower_arm_reba_score = 0
-    if right_flexion >= left_flexion:
-        if 0 <= right_flexion < 60:
-            lower_arm_reba_score = lower_arm_reba_score + 2
-        if 60 <= right_flexion < 100:
-            lower_arm_reba_score = lower_arm_reba_score + 1
-        if 100 <= right_flexion:
-            lower_arm_reba_score = lower_arm_reba_score + 1
-        file.write(str(right_flexion)+ ',')
-    if right_flexion < left_flexion:
-        if 0 <= left_flexion < 60:
-            lower_arm_reba_score = lower_arm_reba_score + 2
-        if 60 <= left_flexion < 100:
-            lower_arm_reba_score = lower_arm_reba_score + 1
-        if 100 <= left_flexion:
-            lower_arm_reba_score = lower_arm_reba_score + 1
-        file.write(str(left_flexion)+ ',')
-    return lower_arm_reba_score
+        # right and left arm degree in saggital plane
+        right_degree = util.get_angle_between_degs(right_shoulder_elbow_vector,right_elbow_wrist_vector)
+        left_degree =util.get_angle_between_degs(left_shoulder_elbow_vector,left_elbow_wrist_vector)
+
+        return [right_degree,left_degree]
+
+    def lower_arm_score(self):
+        degree = self.lower_arm_degree()
+        right_degree = degree[0]
+        left_degree = degree[1]
+        lower_arm_reba_score = 0
+        if right_degree >= left_degree:
+            if 0 <= right_degree < 60:
+                lower_arm_reba_score = lower_arm_reba_score + 2
+            if 60 <= right_degree < 100:
+                lower_arm_reba_score = lower_arm_reba_score + 1
+            if 100 <= right_degree:
+                lower_arm_reba_score = lower_arm_reba_score + 1
+        if right_degree < left_degree:
+            if 0 <= left_degree < 60:
+                lower_arm_reba_score = lower_arm_reba_score + 2
+            if 60 <= left_degree < 100:
+                lower_arm_reba_score = lower_arm_reba_score + 1
+            if 100 <= left_degree:
+                lower_arm_reba_score = lower_arm_reba_score + 1
+
+        return lower_arm_reba_score
+
