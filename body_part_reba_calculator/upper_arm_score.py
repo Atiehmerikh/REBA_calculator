@@ -1,108 +1,153 @@
-from pycg3d.cg3d_point import CG3dPoint
-from pycg3d.cg3d_vector import CG3dVector
 import math
-from pycg3d import utils
+import numpy as np
+import body_part_reba_calculator.body_part_numbering as bodyNum
+import body_part_reba_calculator.Util as util
 
 
-def upper_arm_score(joints,file):
-    right_shoulder_index = 2
-    right_elbow_index = 3
-    left_shoulder_index = 5
-    left_elbow_index = 6
-    neck_index = 1
-    head_index = 0
-    base_index = 8
+class UpperArm:
+    def __init__(self, joints_position):
+        self.joints_position = joints_position
 
-    neck_point = CG3dPoint(joints[neck_index][0], joints[neck_index][1], joints[neck_index][2])
-    head_point = CG3dPoint(joints[head_index][0], joints[head_index][1], joints[head_index][2])
+    def trunk_plane(self):
+        m_body_number = bodyNum.body_part_number()
+        trunk_joint_numbers = m_body_number.trunk_upper_body()
 
-    base_point = CG3dPoint(joints[base_index][0], joints[base_index][1],
-                           joints[base_index][2])
-    right_shoulder_point = CG3dPoint(joints[right_shoulder_index][0], joints[right_shoulder_index][1],
-                                     joints[right_shoulder_index][2])
-    left_shoulder_point = CG3dPoint(joints[left_shoulder_index][0], joints[left_shoulder_index][1],
-                                    joints[left_shoulder_index][2])
-    right_elbow_point = CG3dPoint(joints[right_elbow_index][0], joints[right_elbow_index][1],
-                                  joints[right_elbow_index][2])
-    left_elbow_point = CG3dPoint(joints[left_elbow_index][0], joints[left_elbow_index][1],
-                                 joints[left_elbow_index][2])
+        # finding a plane of upper body
+        u = self.joints_position[trunk_joint_numbers[1]] - self.joints_position[trunk_joint_numbers[0]]
+        v = self.joints_position[trunk_joint_numbers[3]] - self.joints_position[trunk_joint_numbers[0]]
 
-    right_shoulder_elbow_vector = CG3dVector(right_elbow_point[0] - right_shoulder_point[0],
-                                             right_elbow_point[1] - right_shoulder_point[1],
-                                             right_elbow_point[2] - right_shoulder_point[2])
-    left_shoulder_elbow_vector = CG3dVector(left_elbow_point[0] - left_shoulder_point[0],
-                                            left_elbow_point[1] - left_shoulder_point[1],
-                                            left_elbow_point[2] - left_shoulder_point[2])
-    neck_base_vector = CG3dVector(base_point[0] - neck_point[0],
-                                  base_point[1] - neck_point[1],
-                                  base_point[2] - neck_point[2])
+        normal_plane = np.cross(u, v)
+        return normal_plane
 
-    right_shoulder_neck_vector = CG3dVector(neck_point[0] - right_shoulder_point[0],
-                                            neck_point[1] - right_shoulder_point[1],
-                                            neck_point[2] - right_shoulder_point[2])
-    left_shoulder_neck_vector = CG3dVector(neck_point[0] - left_shoulder_point[0],
-                                           neck_point[1] - left_shoulder_point[1],
-                                           neck_point[2] - left_shoulder_point[2])
+    def upper_arm_flex(self):
+        m_body_number = bodyNum.body_part_number()
+        right_upper_arm_joint_numbers = m_body_number.right_arm()
+        left_upper_arm_joint_numbers = m_body_number.left_arm()
+        trunk_joint_numbers = m_body_number.trunk_whole_body()
 
-    neck_head_vector = CG3dVector(head_point[0] - neck_point[0],
-                                  head_point[1] - neck_point[1],
-                                  head_point[2] - neck_point[2])
+        right_upper_arm_vector = self.joints_position[right_upper_arm_joint_numbers[1]] - self.joints_position[
+            right_upper_arm_joint_numbers[0]]
 
-    # flexion or extension degree
-    right_flexion = math.degrees(math.acos((neck_base_vector * right_shoulder_elbow_vector) / (
-            utils.distance(neck_point, base_point) * utils.distance(right_shoulder_point, right_elbow_point))))
-    left_flexion = math.degrees(math.acos((neck_base_vector * left_shoulder_elbow_vector) / (
-            utils.distance(neck_point, base_point) * utils.distance(left_shoulder_point, left_elbow_point))))
-    # adduction or abduction
-    right_side_abduction = math.degrees(math.acos((right_shoulder_neck_vector * right_shoulder_elbow_vector) / (
-            utils.distance(neck_point, right_shoulder_point) * utils.distance(right_shoulder_point,
-                                                                              right_elbow_point)))) - 90
-    left_side_abduction = math.degrees(math.acos((left_shoulder_neck_vector * left_shoulder_elbow_vector) / (
-            utils.distance(neck_point, left_shoulder_point) * utils.distance(left_shoulder_point,
-                                                                             left_elbow_point)))) - 90
-    right_shoulder_rise_degree = math.degrees(math.acos((right_shoulder_neck_vector * neck_head_vector) / (
-            utils.distance(neck_point, head_point) * utils.distance(right_shoulder_point,
-                                                                    neck_point))))-90
-    left_shoulder_rise_degree = math.degrees(math.acos((left_shoulder_neck_vector * neck_head_vector) / (
-            utils.distance(neck_point, head_point) * utils.distance(left_shoulder_point,
-                                                                    neck_point))))-90
-    upper_arm_reba_score = 0
-    if right_flexion >= left_flexion:
-        if 0 <= right_flexion < 20:
-            upper_arm_reba_score = upper_arm_reba_score + 1
-        if 20 <= right_flexion < 45:
-            upper_arm_reba_score = upper_arm_reba_score + 2
-        if 45 <= right_flexion < 90:
-            upper_arm_reba_score = upper_arm_reba_score + 3
-        if 90 <= right_flexion:
-            upper_arm_reba_score = upper_arm_reba_score + 4
-        file.write(str(right_flexion)+ ',')
-    if right_flexion < left_flexion:
-        if 0 <= left_flexion < 20:
-            upper_arm_reba_score = upper_arm_reba_score + 1
-        if 20 <= left_flexion < 45:
-            upper_arm_reba_score = upper_arm_reba_score + 2
-        if 45 <= left_flexion < 90:
-            upper_arm_reba_score = upper_arm_reba_score + 3
-        if 90 <= left_flexion:
-            upper_arm_reba_score = upper_arm_reba_score + 4
-        file.write(str(left_flexion)+ ',')
+        left_upper_arm_vector = self.joints_position[left_upper_arm_joint_numbers[1]] - self.joints_position[
+            left_upper_arm_joint_numbers[0]]
 
-    if abs(right_side_abduction) >5 or abs(left_side_abduction) > 5:
-        upper_arm_reba_score = upper_arm_reba_score + 1
+        # normal_trunk_plane = self.trunk_plane()
+        spine_vector = self.joints_position[trunk_joint_numbers[3]] - self.joints_position[trunk_joint_numbers[2]]
+        flex_right_upper_arm =  util.get_angle_between_degs(right_upper_arm_vector,spine_vector)
 
-    if abs(right_side_abduction)>abs(left_side_abduction):
-        file.write(str(right_side_abduction)+ ',')
-    if abs(right_side_abduction)<=abs(left_side_abduction):
-        file.write(str(left_side_abduction)+ ',')
+        flex_left_upper_arm =  util.get_angle_between_degs(left_upper_arm_vector,spine_vector)
 
-    if abs(right_shoulder_rise_degree) >5 or abs(left_shoulder_rise_degree)>5:
-        upper_arm_reba_score = upper_arm_reba_score + 1
+        return [flex_right_upper_arm, flex_left_upper_arm]
 
-    if abs(right_shoulder_rise_degree)>abs(left_shoulder_rise_degree):
-        file.write(str(right_shoulder_rise_degree)+ ',')
-    if abs(right_shoulder_rise_degree)<=abs(left_shoulder_rise_degree):
-        file.write(str(left_shoulder_rise_degree)+ ',')
+    def upper_arm_side_bending(self):
+        m_body_number = bodyNum.body_part_number()
+        right_upper_arm_joint_numbers = m_body_number.right_arm()
+        left_upper_arm_joint_numbers = m_body_number.left_arm()
 
+        trunk_joint_numbers = m_body_number.trunk_upper_body()
+        right_upper_arm_vector = self.joints_position[right_upper_arm_joint_numbers[2]] - self.joints_position[
+            right_upper_arm_joint_numbers[1]]
+        left_upper_arm_vector = self.joints_position[left_upper_arm_joint_numbers[2]] - self.joints_position[
+            left_upper_arm_joint_numbers[1]]
 
-    return upper_arm_reba_score
+        normal_trunk_plane = self.trunk_plane()
+
+        proj_right_upperarm_on_plane = right_upper_arm_vector - np.dot(right_upper_arm_vector,
+                                                                       normal_trunk_plane) * normal_trunk_plane
+
+        proj_left_upperarm_on_plane = left_upper_arm_vector - np.dot(left_upper_arm_vector,
+                                                                     normal_trunk_plane) * normal_trunk_plane
+
+        spine_vector = self.joints_position[trunk_joint_numbers[0]] - self.joints_position[trunk_joint_numbers[2]]
+
+        right_side_degree =util.get_angle_between_degs(spine_vector,proj_right_upperarm_on_plane)
+
+        left_side_degree = util.get_angle_between_degs(spine_vector,proj_left_upperarm_on_plane)
+
+        if np.dot(np.cross(spine_vector, right_upper_arm_vector), normal_trunk_plane) < 0:
+            # if the arm go to the body: adduction
+            right_side_degree *= -1
+
+        if np.dot(np.cross(spine_vector, left_upper_arm_vector), normal_trunk_plane) > 0:
+            left_side_degree *= -1
+
+        return [right_side_degree, left_side_degree]
+
+    def shoulder_rise(self):
+        m_body_number = bodyNum.body_part_number()
+        trunk_joint_numbers = m_body_number.trunk_upper_body()
+        right_shoulder_joint_numbers = m_body_number.right_shoulder()
+        left_shoulder_joint_numbers = m_body_number.left_shoulder()
+        spine_vector = self.joints_position[trunk_joint_numbers[0]] - self.joints_position[trunk_joint_numbers[2]]
+        right_shoulder_vector = self.joints_position[right_shoulder_joint_numbers[1]] - self.joints_position[
+            right_shoulder_joint_numbers[0]]
+        left_shoulder_vector = self.joints_position[left_shoulder_joint_numbers[1]] - self.joints_position[left_shoulder_joint_numbers[0]]
+
+        right_shoulder_rise_degree = 90-util.get_angle_between_degs(spine_vector,right_shoulder_vector)
+        left_shoulder_rise_degree = 90-util.get_angle_between_degs(spine_vector,left_shoulder_vector)
+
+        return [right_shoulder_rise_degree, left_shoulder_rise_degree]
+
+    def upper_arm_reba_score(self):
+        upper_arm_reba_score = 0
+        upper_arm_flex_score = 0
+        upper_arm_side_score = 0
+        upper_arm_shoulder_rise = 0
+
+        flexion = self.upper_arm_flex()
+        side = self.upper_arm_side_bending()
+        shoulder_rise = self.shoulder_rise()
+
+        right_flexion = flexion[0]
+        left_flexion = flexion[1]
+
+        right_side = side[0]
+        left_side = side[1]
+
+        right_shoulder_rise = shoulder_rise[0]
+        left_shoulder_rise = shoulder_rise[1]
+
+        if right_flexion >= left_flexion:
+            if -20 <= right_flexion < 20:
+                upper_arm_reba_score += 1
+                upper_arm_flex_score += 1
+            if 20 <= right_flexion < 45:
+                upper_arm_reba_score += 2
+                upper_arm_flex_score += 2
+            if right_flexion < -20:
+                upper_arm_reba_score += 2
+                upper_arm_flex_score += 2
+            if 45 <= right_flexion < 90:
+                upper_arm_reba_score += 3
+                upper_arm_flex_score += 3
+            if 90 <= right_flexion:
+                upper_arm_reba_score += 4
+                upper_arm_flex_score += 4
+        if right_flexion < left_flexion:
+            if -20 <= left_flexion < 20:
+                upper_arm_reba_score += 1
+                upper_arm_flex_score += 1
+            if left_flexion < -20:
+                upper_arm_reba_score += 2
+                upper_arm_flex_score += 2
+            if 20 <= left_flexion < 45:
+                upper_arm_reba_score += 2
+                upper_arm_flex_score += 2
+            if 45 <= left_flexion < 90:
+                upper_arm_reba_score += 3
+                upper_arm_flex_score += 3
+            if 90 <= left_flexion:
+                upper_arm_reba_score += 4
+                upper_arm_flex_score += 4
+
+            # for side bending
+            if abs(right_side) > 2 or abs(left_side) > 2:
+                upper_arm_reba_score += 1
+                upper_arm_side_score += 1
+
+            # for shoulder rise
+
+            if right_shoulder_rise > 90 or left_shoulder_rise > 90:
+                upper_arm_reba_score += 1
+                upper_arm_shoulder_rise += 1
+        return [upper_arm_reba_score, upper_arm_flex_score, upper_arm_side_score, upper_arm_shoulder_rise]
