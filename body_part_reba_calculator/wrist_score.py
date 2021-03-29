@@ -1,62 +1,144 @@
-from pycg3d.cg3d_point import CG3dPoint
-from pycg3d.cg3d_vector import CG3dVector
+import numpy as np
 import math
-from pycg3d import utils
+import body_part_reba_calculator.Util as util
+import body_part_reba_calculator.body_part_numbering as bodyNum
 
 
-def wrist_score(joints,file):
-    right_wrist_index = 4
-    right_finger_index = 4
-    left_wrist_index = 7
-    left_finger_index = 7
-    right_elbow_index = 3
-    left_elbow_index = 6
+class Wrist:
+    def __init__(self, joints_position,joints_orientation):
+        self.joints_position = joints_position
+        self.joints_orientation = joints_orientation
 
-    right_wrist_point = CG3dPoint(joints[right_wrist_index][0], joints[right_wrist_index][1],
-                                  joints[right_wrist_index][2])
-    left_wrist_point = CG3dPoint(joints[left_wrist_index][0], joints[left_wrist_index][1],
-                                 joints[left_wrist_index][2])
-    right_finger_point = CG3dPoint(joints[right_finger_index][0], joints[right_finger_index][1],
-                                   joints[right_finger_index][2])
-    left_finger_point = CG3dPoint(joints[left_finger_index][0], joints[left_finger_index][1],
-                                  joints[left_finger_index][2])
-    right_elbow_point = CG3dPoint(joints[right_elbow_index][0], joints[right_elbow_index][1],
-                                  joints[right_elbow_index][2])
-    left_elbow_point = CG3dPoint(joints[left_elbow_index][0], joints[left_elbow_index][1],
-                                 joints[left_elbow_index][2])
+    def wrist_flex(self):
+        m_body = bodyNum.body_part_number()
+        right_arm_joint_number = m_body.right_arm()
+        left_arm_joint_number = m_body.left_arm()
 
-    right_elbow_wrist_vector = CG3dVector(right_wrist_point[0] - right_elbow_point[0],
-                                          right_wrist_point[1] - right_elbow_point[1],
-                                          right_wrist_point[2] - right_elbow_point[2])
-    left_elbow_wrist_vector = CG3dVector(left_wrist_point[0] - left_elbow_point[0],
-                                         left_wrist_point[1] - left_elbow_point[1],
-                                         left_wrist_point[2] - left_elbow_point[2])
+        right_shoulder_elbow_vector = self.joints_position[right_arm_joint_number[1]] - self.joints_position[
+            right_arm_joint_number[0]]
+        left_shoulder_elbow_vector = self.joints_position[left_arm_joint_number[1]] - self.joints_position[
+            left_arm_joint_number[0]]
+        right_elbow_wrist_vector = self.joints_position[right_arm_joint_number[2]] - self.joints_position[
+            right_arm_joint_number[1]]
+        left_elbow_wrist_vector = self.joints_position[left_arm_joint_number[2]] - self.joints_position[
+            left_arm_joint_number[1]]
+        right_wrist_finger_vector = self.joints_position[right_arm_joint_number[3]] - self.joints_position[
+            right_arm_joint_number[2]]
+        left_wrist_finger_vector = self.joints_position[left_arm_joint_number[3]] - self.joints_position[
+            left_arm_joint_number[2]]
 
-    right_wrist_finger_vector = CG3dVector(right_finger_point[0] - right_wrist_point[0],
-                                           right_finger_point[1] - right_wrist_point[1],
-                                           right_finger_point[2] - right_wrist_point[2])
-    left_wrist_finger_vector = CG3dVector(left_finger_point[0] - left_wrist_point[0],
-                                          left_finger_point[1] - left_wrist_point[1],
-                                          left_finger_point[2] - left_wrist_point[2])
-    right_wrist = math.degrees(
-        math.acos((right_elbow_wrist_vector * right_wrist_finger_vector) / (
-                utils.distance(right_elbow_point, right_wrist_point) * utils.distance(right_wrist_point,
-                                                                                      right_finger_point))))
-    left_wrist = math.degrees(
-        math.acos((left_elbow_wrist_vector * left_wrist_finger_vector) / (
-                utils.distance(left_elbow_point, left_wrist_point) * utils.distance(left_wrist_point,
-                                                                                    left_finger_point))))
-    wrist_reba_score = 0
-    if right_wrist >= left_wrist:
-        if 0 <= right_wrist < 15:
-            wrist_reba_score = wrist_reba_score + 1
-        if 15 <= right_wrist:
-            wrist_reba_score = wrist_reba_score + 2
-        file.write(str(right_wrist)+ ',')
-    if right_wrist < left_wrist:
-        if 0 <= left_wrist < 15:
-            wrist_reba_score = wrist_reba_score + 1
-        if 15 <= left_wrist:
-            wrist_reba_score = wrist_reba_score + 2
-        file.write(str(left_wrist)+ ',')
-    return wrist_reba_score
+        right_plane_normal_vec = np.cross(right_shoulder_elbow_vector, right_elbow_wrist_vector)
+        left_plane_normal_vec = np.cross(left_shoulder_elbow_vector, left_elbow_wrist_vector)
+
+        right_wrist_flex = util.get_angle_between_degs(right_elbow_wrist_vector, right_wrist_finger_vector)
+        left_wrist_flex = util.get_angle_between_degs(left_elbow_wrist_vector, left_wrist_finger_vector)
+
+        if right_plane_normal_vec[0] != 0 or right_plane_normal_vec[1] != 0 or right_plane_normal_vec[2] != 0:
+            if np.dot(np.cross(right_wrist_finger_vector, right_elbow_wrist_vector), right_plane_normal_vec) > 0:
+                # means extend of wrist
+                right_wrist_flex *= -1
+
+        if left_plane_normal_vec[0] != 0 or left_plane_normal_vec[1] != 0 or left_plane_normal_vec[2] == 0:
+            if np.dot(np.cross(left_wrist_finger_vector, left_elbow_wrist_vector), left_plane_normal_vec) > 0:
+                # means extend of wrist
+                left_wrist_flex *= -1
+
+        return [right_wrist_flex, left_wrist_flex]
+
+    def wrist_side(self):
+        m_body = bodyNum.body_part_number()
+        right_arm_joint_number = m_body.right_arm()
+        left_arm_joint_number = m_body.left_arm()
+
+        right_shoulder_elbow_vector = self.joints_position[right_arm_joint_number[1]] - self.joints_position[
+            right_arm_joint_number[0]]
+        left_shoulder_elbow_vector = self.joints_position[left_arm_joint_number[1]] - self.joints_position[
+            left_arm_joint_number[0]]
+        right_elbow_wrist_vector = self.joints_position[right_arm_joint_number[2]] - self.joints_position[
+            right_arm_joint_number[1]]
+        left_elbow_wrist_vector = self.joints_position[left_arm_joint_number[2]] - self.joints_position[
+            left_arm_joint_number[1]]
+        right_wrist_finger_vector = self.joints_position[right_arm_joint_number[3]] - self.joints_position[
+            right_arm_joint_number[2]]
+        left_wrist_finger_vector = self.joints_position[left_arm_joint_number[3]] - self.joints_position[
+            left_arm_joint_number[2]]
+
+        right_plane_normal_vec = np.cross(right_shoulder_elbow_vector, right_elbow_wrist_vector)
+        left_plane_normal_vec = np.cross(left_shoulder_elbow_vector, left_elbow_wrist_vector)
+
+        if right_plane_normal_vec[0] != 0 or right_plane_normal_vec[1] != 0 or right_plane_normal_vec[2] != 0:
+            right_side_bent_degree = 90 - util.get_angle_between_degs(right_plane_normal_vec,right_wrist_finger_vector)
+        else:
+            right_side_bent_degree = 0
+        if left_plane_normal_vec[0] != 0 or left_plane_normal_vec[1] != 0 or left_plane_normal_vec[2] == 0:
+            left_side_bent_degree = 90 - util.get_angle_between_degs(left_plane_normal_vec,left_wrist_finger_vector)
+        else:
+            left_side_bent_degree = 0
+
+        return [right_side_bent_degree, left_side_bent_degree]
+
+    def wrist_torsion(self):
+        m_body_number = bodyNum.body_part_number()
+        right_wrist_joint_numbers = m_body_number.right_arm()
+        q1 = self.joints_orientation[right_wrist_joint_numbers[3]]
+        q2 = self.joints_orientation[right_wrist_joint_numbers[2]]
+        # finding the rotor that express rotation between two orientational frame(between outer and inner joint)
+        rotor = util.find_rotation_quaternion(q1, q2)
+        if (rotor[0]>1):
+            rotor[0]=1
+        elif rotor[0]<-1:
+            rotor[0]=-1
+        right_wrist_twist = math.acos(rotor[0]) * 2 * (180 / np.pi)
+
+        m_body_number = bodyNum.body_part_number()
+        left_wrist_joint_numbers = m_body_number.left_arm()
+        q1 = self.joints_orientation[left_wrist_joint_numbers[3]]
+        q2 = self.joints_orientation[left_wrist_joint_numbers[2]]
+        # finding the rotor that express rotation between two orientational frame(between outer and inner joint)
+        rotor = util.find_rotation_quaternion(q1, q2)
+        left_wrist_twist = math.acos(rotor[0]) * 2 * (180 / np.pi)
+
+        return [right_wrist_twist, left_wrist_twist]
+
+    def wrist_reba_score(self):
+        wrist_reba_score = 0
+        wrist_flex_score = 0
+        wrist_side_bend_score = 0
+        wrist_torsion_score = 0
+
+        flex = self.wrist_flex()
+        right_flex = flex[0]
+        left_flex = flex[1]
+
+        side = self.wrist_side()
+        right_side = side[0]
+        left_side = side[1]
+
+        twist = self.wrist_torsion()
+        right_twist = side[0]
+        left_twist = side[1]
+
+        if right_flex > left_flex:
+            if -15 <= right_flex < 15:
+                wrist_reba_score += 1
+                wrist_flex_score += 1
+            if 15 <= right_flex or right_flex < -15:
+                wrist_reba_score += 2
+                wrist_flex_score += 2
+        else:
+            if -15 <= left_flex < 15:
+                wrist_reba_score += 1
+                wrist_flex_score += 1
+            if 15 <= left_flex or left_flex < -15:
+                wrist_reba_score += 2
+                wrist_flex_score += 2
+
+        if right_side != 0 or left_side != 0:
+            wrist_reba_score += 1
+            wrist_side_bend_score += 1
+
+        if right_twist != 0 or left_twist !=0 :
+            wrist_torsion_score +=1
+            wrist_reba_score += 1
+
+        return [wrist_reba_score, wrist_flex_score, wrist_side_bend_score, wrist_torsion_score]
