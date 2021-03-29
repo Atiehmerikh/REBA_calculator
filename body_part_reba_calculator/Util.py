@@ -1,6 +1,6 @@
 import math
 import numpy as np
-import reba_score_calculation.Matrixes as Mat
+import body_part_reba_calculator.Matrixes as Mat
 
 
 def get_angle_between_degs(v1, v2):
