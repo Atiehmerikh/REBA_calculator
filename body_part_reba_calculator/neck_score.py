@@ -1,60 +1,91 @@
-from pycg3d.cg3d_point import CG3dPoint
-from pycg3d.cg3d_vector import CG3dVector
+import numpy as np
 import math
-from pycg3d import utils
+import body_part_reba_calculator.body_part_numbering as bodyNum
+import body_part_reba_calculator.Util as util
 
 
-def neck_score(joints, file):
-    neck_reba_score = 0
+class Neck:
+    # for calculating Neck flexion score first we find the plane that the trunk is in there, then angle of
+    # neck relative to this plane is calculated.
+    def __init__(self, joints,orientation):
+        self.joints = joints
+        self.orientation = orientation
 
-    neck_index = 1
-    head_index = 0
-    core_index = 8
-    toe_index = 11
-    ankle_index = 11
-    right_shoulder_index = 2
+    def trunk_plane(self):
+        m_body_number = bodyNum.body_part_number()
+        trunk_joint_numbers = m_body_number.trunk_upper_body()
 
-    neck_point = CG3dPoint(joints[neck_index][0], joints[neck_index][1], joints[neck_index][2])
-    base_point = CG3dPoint(joints[core_index][0], joints[core_index][1], joints[core_index][2])
-    ankle_point = CG3dPoint(joints[ankle_index][0], joints[ankle_index][1], joints[ankle_index][2])
-    head_point = CG3dPoint(joints[head_index][0], joints[head_index][1], joints[head_index][2])
-    toe_point = CG3dPoint(joints[toe_index][0], joints[toe_index][1], joints[toe_index][2])
-    shoulder_point = CG3dPoint(joints[right_shoulder_index][0], joints[right_shoulder_index][1],
-                               joints[right_shoulder_index][2])
+        # finding a plane of upper body
+        u = self.joints[trunk_joint_numbers[1]] - self.joints[trunk_joint_numbers[0]]
+        v = self.joints[trunk_joint_numbers[3]] - self.joints[trunk_joint_numbers[0]]
 
-    neck_head_vector = CG3dVector(head_point[0] - neck_point[0], head_point[1] - neck_point[1],
-                                  head_point[2] - neck_point[2])
-    base_neck_vector = CG3dVector(neck_point[0] - base_point[0], neck_point[1] - base_point[1],
-                                  neck_point[2] - base_point[2])
+        normal_plane = np.cross(u, v)
+        return normal_plane
 
-    ankle_toe_vector = CG3dVector(toe_point[0] - ankle_point[0], toe_point[1] - ankle_point[1],
-                                  toe_point[2] - ankle_point[2])
-    neck_shoulder_vector = CG3dVector(shoulder_point[0] - neck_point[0], shoulder_point[1] - neck_point[1],
-                                      shoulder_point[2] - neck_point[2])
+    def neck_flex_calculator(self):
+        m_body_number = bodyNum.body_part_number()
+        neck_joint_numbers = m_body_number.neck()
+        normal_plane = self.trunk_plane()
+        neck_vector = self.joints[neck_joint_numbers[1]] - self.joints[neck_joint_numbers[0]]
 
-    # neck extension
-    # flex_or_ext = math.degrees(math.acos((ankle_toe_vector * base_neck_vector) / (
-    #         utils.distance(neck_point, head_point) * utils.distance(toe_point, base_point))))
-    # if flex_or_ext > 90:
-    #     # extension of neck
-    #     neck_reba_score = neck_reba_score + 2
-    # neck flexion
+        neck_flex = 90 - util.get_angle_between_degs(neck_vector,normal_plane)
 
-    neck_flexion = math.degrees(math.acos((neck_head_vector * base_neck_vector) / (
-            utils.distance(neck_point, head_point) * utils.distance(neck_point, base_point))))
-    if 0 <= neck_flexion < 20:
-        neck_reba_score = neck_reba_score + 1
-    if 20 <= neck_flexion:
-        neck_reba_score = neck_reba_score + 2
+        return neck_flex
 
+    def neck_side_calculator(self):
+        m_body_number = bodyNum.body_part_number()
+        neck_joint_numbers = m_body_number.neck()
+        trunk_joint_numbers = m_body_number.trunk_upper_body()
 
-    # neck_bending:
-    neck_bending = math.degrees(math.acos((neck_head_vector * neck_shoulder_vector) / (
-            utils.distance(neck_point, head_point) * utils.distance(neck_point, shoulder_point))))
-    if (neck_bending - 90) > 1:
-        neck_reba_score = neck_reba_score + 1
+        normal_plane = self.trunk_plane()
+        neck_vector = self.joints[neck_joint_numbers[1]] - self.joints[neck_joint_numbers[0]]
+        project_neck_on_trunk_plane = neck_vector - np.dot(neck_vector, normal_plane) * normal_plane
 
-    file.write(str(neck_flexion) + ',')
-    file.write(str(neck_bending) + ',')
+        spine_vector = self.joints[trunk_joint_numbers[2]] - self.joints[trunk_joint_numbers[0]]
 
-    return neck_reba_score
+        neck_side_bending = math.degrees(math.acos(np.dot(project_neck_on_trunk_plane, spine_vector) / (
+                math.sqrt(np.dot(project_neck_on_trunk_plane, project_neck_on_trunk_plane)) * math.sqrt(
+            np.dot(spine_vector, spine_vector)))))
+
+        return neck_side_bending
+
+    def neck_twist_calculator(self):
+        m_body_number = bodyNum.body_part_number()
+        neck_joint_numbers = m_body_number.neck()
+        q1 = self.orientation[neck_joint_numbers[1]]
+        q2 = self.orientation[neck_joint_numbers[0]]
+        # finding the rotor that express rotation between two orientational frame(between outer and inner joint)
+        rotor = util.find_rotation_quaternion(q1, q2)
+        neck_twist = math.acos(rotor[0]) * 2 * (180 / np.pi)
+        return neck_twist
+
+    def neck_reba_score(self):
+        neck_flex_degree = self.neck_flex_calculator()
+        neck_side_bending_degree = self.neck_side_calculator()
+        neck_twist_degree = self.neck_twist_calculator()
+
+        neck_reba_score = 0
+        neck_flex_score =0
+        neck_side_score = 0
+        neck_torsion_score =0
+
+        if neck_flex_degree >= 0:
+            if 0 <= neck_flex_degree < 20:
+                neck_reba_score += 1
+                neck_flex_score +=1
+            if 20 <= neck_flex_degree:
+                neck_reba_score += 2
+                neck_flex_score +=2
+        else:
+            # neck is in extension
+            neck_reba_score += 2
+            neck_flex_score +=2
+
+        if abs(neck_side_bending_degree) >= 1:
+            neck_reba_score += 1
+            neck_side_score +=1
+        if abs(neck_twist_degree) >= 1:
+            neck_reba_score += 1
+            neck_torsion_score +=1
+
+        return [neck_reba_score,neck_flex_score,neck_side_score,neck_torsion_score]

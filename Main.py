@@ -117,8 +117,8 @@ for i in range(1,9):
 
     # drawing each posture:
 
-    # drawer = draw.Draw(np.loadtxt(string))
-    # drawer.draw_final()
+    drawer = draw.Draw(np.loadtxt(string))
+    drawer.draw_final()
 
 file.close()
 
