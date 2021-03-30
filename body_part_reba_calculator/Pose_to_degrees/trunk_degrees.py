@@ -1,10 +1,10 @@
 import numpy as np
 import math
-import body_part_reba_calculator.body_part_numbering as bodyNum
-import body_part_reba_calculator.Util as util
+import body_part_reba_calculator.Pose_to_degrees.body_part_numbering as bodyNum
+import body_part_reba_calculator.Pose_to_degrees.Util as Util
 
 
-class Trunk:
+class TrunkDegree:
     def __init__(self, joints_position,joints_orientation):
         self.joints_position = joints_position
         self.joints_orientation = joints_orientation
@@ -25,7 +25,7 @@ class Trunk:
         normal_plane = self.trunk_plane()
         y_vector = np.array([0, 1, 0])
 
-        trunk_flex =  util.get_angle_between_degs(y_vector,normal_plane) - 90
+        trunk_flex = Util.get_angle_between_degs(y_vector, normal_plane) - 90
         return trunk_flex
 
     def trunk_side_calculator(self):
@@ -52,52 +52,13 @@ class Trunk:
         q1 = self.joints_orientation[trunk_joint_numbers[2]]# neck
         q2 = self.joints_orientation[trunk_joint_numbers[3]]# core
         # finding the rotor that express rotation between two orientational frame(between outer and inner joint)
-        rotor = util.find_rotation_quaternion(q1, q2)
+        rotor = Util.find_rotation_quaternion(q1, q2)
         trunk_twist = math.acos(rotor[0]) * 2 * (180 / np.pi)
         return trunk_twist
 
-    def trunk_reba_score(self):
-
+    def trunk_degrees(self):
         trunk_flex_degree = self.trunk_flex_calculator()
         trunk_side_bending_degree = self.trunk_side_calculator()
         trunk_torsion_degree = self.trunk_twist_calculator()
 
-        trunk_reba_score = 0
-        trunk_flex_score = 0
-        trunk_side_score = 0
-        trunk_torsion_score = 0
-
-        if trunk_flex_degree >= 0:
-            # means flexion
-            if 0 <= trunk_flex_degree < 5:
-                trunk_reba_score += 1
-                trunk_flex_score += 1
-            elif 5 <= trunk_flex_degree < 20:
-                trunk_reba_score += 2
-                trunk_flex_score += 2
-            elif 20 <= trunk_flex_degree < 60:
-                trunk_reba_score += 3
-                trunk_flex_score += 3
-            elif 60 <= trunk_flex_degree:
-                trunk_reba_score += 4
-                trunk_flex_score += 4
-        else:
-            # means extension
-            if 0 <= abs(trunk_flex_degree) < 5:
-                trunk_reba_score += 1
-                trunk_flex_score += 1
-            elif 5 <= abs(trunk_flex_degree) < 20:
-                trunk_reba_score += 2
-                trunk_flex_score += 2
-            elif 20 <= abs(trunk_flex_degree):
-                trunk_reba_score += 3
-                trunk_flex_score += 3
-
-        if abs(trunk_side_bending_degree) >= 1:
-            trunk_reba_score += 1
-            trunk_side_score += 1
-        if abs(trunk_torsion_degree) >= 1:
-            trunk_reba_score += 1
-            trunk_torsion_score += 1
-
-        return [trunk_reba_score, trunk_flex_score, trunk_side_score, trunk_torsion_score]
+        return [trunk_flex_degree,trunk_side_bending_degree,trunk_torsion_degree]

@@ -1,10 +1,10 @@
 import numpy as np
 import math
-import body_part_reba_calculator.Util as util
-import body_part_reba_calculator.body_part_numbering as bodyNum
+import body_part_reba_calculator.Pose_to_degrees.body_part_numbering as bodyNum
+import body_part_reba_calculator.Pose_to_degrees.Util as Util
 
 
-class Wrist:
+class WristDegrees:
     def __init__(self, joints_position,joints_orientation):
         self.joints_position = joints_position
         self.joints_orientation = joints_orientation
@@ -30,8 +30,8 @@ class Wrist:
         right_plane_normal_vec = np.cross(right_shoulder_elbow_vector, right_elbow_wrist_vector)
         left_plane_normal_vec = np.cross(left_shoulder_elbow_vector, left_elbow_wrist_vector)
 
-        right_wrist_flex = util.get_angle_between_degs(right_elbow_wrist_vector, right_wrist_finger_vector)
-        left_wrist_flex = util.get_angle_between_degs(left_elbow_wrist_vector, left_wrist_finger_vector)
+        right_wrist_flex = Util.get_angle_between_degs(right_elbow_wrist_vector, right_wrist_finger_vector)
+        left_wrist_flex = Util.get_angle_between_degs(left_elbow_wrist_vector, left_wrist_finger_vector)
 
         if right_plane_normal_vec[0] != 0 or right_plane_normal_vec[1] != 0 or right_plane_normal_vec[2] != 0:
             if np.dot(np.cross(right_wrist_finger_vector, right_elbow_wrist_vector), right_plane_normal_vec) > 0:
@@ -67,11 +67,11 @@ class Wrist:
         left_plane_normal_vec = np.cross(left_shoulder_elbow_vector, left_elbow_wrist_vector)
 
         if right_plane_normal_vec[0] != 0 or right_plane_normal_vec[1] != 0 or right_plane_normal_vec[2] != 0:
-            right_side_bent_degree = 90 - util.get_angle_between_degs(right_plane_normal_vec,right_wrist_finger_vector)
+            right_side_bent_degree = 90 - Util.get_angle_between_degs(right_plane_normal_vec, right_wrist_finger_vector)
         else:
             right_side_bent_degree = 0
         if left_plane_normal_vec[0] != 0 or left_plane_normal_vec[1] != 0 or left_plane_normal_vec[2] == 0:
-            left_side_bent_degree = 90 - util.get_angle_between_degs(left_plane_normal_vec,left_wrist_finger_vector)
+            left_side_bent_degree = 90 - Util.get_angle_between_degs(left_plane_normal_vec, left_wrist_finger_vector)
         else:
             left_side_bent_degree = 0
 
@@ -83,7 +83,7 @@ class Wrist:
         q1 = self.joints_orientation[right_wrist_joint_numbers[3]]
         q2 = self.joints_orientation[right_wrist_joint_numbers[2]]
         # finding the rotor that express rotation between two orientational frame(between outer and inner joint)
-        rotor = util.find_rotation_quaternion(q1, q2)
+        rotor = Util.find_rotation_quaternion(q1, q2)
         if (rotor[0]>1):
             rotor[0]=1
         elif rotor[0]<-1:
@@ -95,17 +95,12 @@ class Wrist:
         q1 = self.joints_orientation[left_wrist_joint_numbers[3]]
         q2 = self.joints_orientation[left_wrist_joint_numbers[2]]
         # finding the rotor that express rotation between two orientational frame(between outer and inner joint)
-        rotor = util.find_rotation_quaternion(q1, q2)
+        rotor = Util.find_rotation_quaternion(q1, q2)
         left_wrist_twist = math.acos(rotor[0]) * 2 * (180 / np.pi)
 
         return [right_wrist_twist, left_wrist_twist]
 
-    def wrist_reba_score(self):
-        wrist_reba_score = 0
-        wrist_flex_score = 0
-        wrist_side_bend_score = 0
-        wrist_torsion_score = 0
-
+    def wrist_degrees(self):
         flex = self.wrist_flex()
         right_flex = flex[0]
         left_flex = flex[1]
@@ -118,27 +113,6 @@ class Wrist:
         right_twist = side[0]
         left_twist = side[1]
 
-        if right_flex > left_flex:
-            if -15 <= right_flex < 15:
-                wrist_reba_score += 1
-                wrist_flex_score += 1
-            if 15 <= right_flex or right_flex < -15:
-                wrist_reba_score += 2
-                wrist_flex_score += 2
-        else:
-            if -15 <= left_flex < 15:
-                wrist_reba_score += 1
-                wrist_flex_score += 1
-            if 15 <= left_flex or left_flex < -15:
-                wrist_reba_score += 2
-                wrist_flex_score += 2
+        return [right_flex,left_flex,right_side,left_side,right_twist,left_twist]
 
-        if right_side != 0 or left_side != 0:
-            wrist_reba_score += 1
-            wrist_side_bend_score += 1
 
-        if right_twist != 0 or left_twist !=0 :
-            wrist_torsion_score +=1
-            wrist_reba_score += 1
-
-        return [wrist_reba_score, wrist_flex_score, wrist_side_bend_score, wrist_torsion_score]

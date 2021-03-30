@@ -1,10 +1,9 @@
-import math
 import numpy as np
-import body_part_reba_calculator.body_part_numbering as bodyNum
-import body_part_reba_calculator.Util as util
+import body_part_reba_calculator.Pose_to_degrees.body_part_numbering as bodyNum
+import body_part_reba_calculator.Pose_to_degrees.Util as Util
 
 
-class UpperArm:
+class UpperArmDegree:
     def __init__(self, joints_position):
         self.joints_position = joints_position
 
@@ -33,9 +32,9 @@ class UpperArm:
 
         # normal_trunk_plane = self.trunk_plane()
         spine_vector = self.joints_position[trunk_joint_numbers[3]] - self.joints_position[trunk_joint_numbers[2]]
-        flex_right_upper_arm =  util.get_angle_between_degs(right_upper_arm_vector,spine_vector)
+        flex_right_upper_arm =  Util.get_angle_between_degs(right_upper_arm_vector, spine_vector)
 
-        flex_left_upper_arm =  util.get_angle_between_degs(left_upper_arm_vector,spine_vector)
+        flex_left_upper_arm =  Util.get_angle_between_degs(left_upper_arm_vector, spine_vector)
 
         return [flex_right_upper_arm, flex_left_upper_arm]
 
@@ -60,9 +59,9 @@ class UpperArm:
 
         spine_vector = self.joints_position[trunk_joint_numbers[0]] - self.joints_position[trunk_joint_numbers[2]]
 
-        right_side_degree =util.get_angle_between_degs(spine_vector,proj_right_upperarm_on_plane)
+        right_side_degree = Util.get_angle_between_degs(spine_vector, proj_right_upperarm_on_plane)
 
-        left_side_degree = util.get_angle_between_degs(spine_vector,proj_left_upperarm_on_plane)
+        left_side_degree = Util.get_angle_between_degs(spine_vector, proj_left_upperarm_on_plane)
 
         if np.dot(np.cross(spine_vector, right_upper_arm_vector), normal_trunk_plane) < 0:
             # if the arm go to the body: adduction
@@ -83,17 +82,12 @@ class UpperArm:
             right_shoulder_joint_numbers[0]]
         left_shoulder_vector = self.joints_position[left_shoulder_joint_numbers[1]] - self.joints_position[left_shoulder_joint_numbers[0]]
 
-        right_shoulder_rise_degree = 90-util.get_angle_between_degs(spine_vector,right_shoulder_vector)
-        left_shoulder_rise_degree = 90-util.get_angle_between_degs(spine_vector,left_shoulder_vector)
+        right_shoulder_rise_degree = 90 - Util.get_angle_between_degs(spine_vector, right_shoulder_vector)
+        left_shoulder_rise_degree = 90 - Util.get_angle_between_degs(spine_vector, left_shoulder_vector)
 
         return [right_shoulder_rise_degree, left_shoulder_rise_degree]
 
-    def upper_arm_reba_score(self):
-        upper_arm_reba_score = 0
-        upper_arm_flex_score = 0
-        upper_arm_side_score = 0
-        upper_arm_shoulder_rise = 0
-
+    def upper_arm_degrees(self):
         flexion = self.upper_arm_flex()
         side = self.upper_arm_side_bending()
         shoulder_rise = self.shoulder_rise()
@@ -107,47 +101,4 @@ class UpperArm:
         right_shoulder_rise = shoulder_rise[0]
         left_shoulder_rise = shoulder_rise[1]
 
-        if right_flexion >= left_flexion:
-            if -20 <= right_flexion < 20:
-                upper_arm_reba_score += 1
-                upper_arm_flex_score += 1
-            if 20 <= right_flexion < 45:
-                upper_arm_reba_score += 2
-                upper_arm_flex_score += 2
-            if right_flexion < -20:
-                upper_arm_reba_score += 2
-                upper_arm_flex_score += 2
-            if 45 <= right_flexion < 90:
-                upper_arm_reba_score += 3
-                upper_arm_flex_score += 3
-            if 90 <= right_flexion:
-                upper_arm_reba_score += 4
-                upper_arm_flex_score += 4
-        if right_flexion < left_flexion:
-            if -20 <= left_flexion < 20:
-                upper_arm_reba_score += 1
-                upper_arm_flex_score += 1
-            if left_flexion < -20:
-                upper_arm_reba_score += 2
-                upper_arm_flex_score += 2
-            if 20 <= left_flexion < 45:
-                upper_arm_reba_score += 2
-                upper_arm_flex_score += 2
-            if 45 <= left_flexion < 90:
-                upper_arm_reba_score += 3
-                upper_arm_flex_score += 3
-            if 90 <= left_flexion:
-                upper_arm_reba_score += 4
-                upper_arm_flex_score += 4
-
-            # for side bending
-            if abs(right_side) > 2 or abs(left_side) > 2:
-                upper_arm_reba_score += 1
-                upper_arm_side_score += 1
-
-            # for shoulder rise
-
-            if right_shoulder_rise > 90 or left_shoulder_rise > 90:
-                upper_arm_reba_score += 1
-                upper_arm_shoulder_rise += 1
-        return [upper_arm_reba_score, upper_arm_flex_score, upper_arm_side_score, upper_arm_shoulder_rise]
+        return [right_flexion,left_flexion,right_side,left_side,right_shoulder_rise,left_shoulder_rise]
