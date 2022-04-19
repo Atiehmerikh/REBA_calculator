@@ -3,9 +3,11 @@ import numpy as np
 # sys.path.append('..')
 import body_part_reba_calculator.Pose_to_degrees as transformer
 import body_part_reba_calculator.Degree_to_REBA as REBA
-
+import xlrd
+import xlsxwriter
 
 def test():
+
     joints_position = np.loadtxt("joints_position_drink.txt")
     joints_orientation = np.loadtxt("joints_orientation_drink.txt")
 
@@ -18,5 +20,57 @@ def test():
     print(REBA_scores)
     # joints_degree_array = m_reba.degree_computation()
 
+    # joints_position = np.loadtxt("joints_position_drink.txt")
+    # joints_orientation = np.loadtxt("joints_orientation_drink.txt")
+    #
+    # m_transformer = transformer.PoseToDeg(joints_position,joints_orientation)
+    # joints_degrees = m_transformer.degree_computation()
+    # print(joints_degrees)
+
+    wb = xlrd.open_workbook('dREBA_optimized_joints.xlsx')
+    workbook = xlsxwriter.Workbook('REBA_dREBA_optimized.xlsx')
+    worksheet = workbook.add_worksheet()
+
+    sheet = wb.sheet_by_index(0)
+    for k in range(sheet.nrows):
+        joints_degrees = []
+        neck =[]
+        trunk=[]
+        leg=[]
+        ua=[]
+        la=[]
+        wrist=[]
+
+        for i in range(0,3):
+            neck.append(sheet.cell_value(k,i))
+        joints_degrees.append(neck)
+
+        for i in range(3,6):
+            trunk.append(sheet.cell_value(k,i))
+        joints_degrees.append(trunk)
+
+        for i in range(6,8):
+            leg.append(sheet.cell_value(k,i))
+
+        joints_degrees.append(leg)
+
+        for i in range(8,14):
+            ua.append(sheet.cell_value(k,i))
+        joints_degrees.append(ua)
+        for i in range(14,16):
+            la.append(sheet.cell_value(k,i))
+
+        joints_degrees.append(la)
+
+        for i in range(16,22):
+            wrist.append(sheet.cell_value(k,i))
+        joints_degrees.append(wrist)
+
+        m_reba = REBA.DegreeToREBA(joints_degrees)
+        REBA_scores = m_reba.reba_computation()
+        worksheet.write(k,0,REBA_scores[0])
+    # joints_degree_array = m_reba.degree_computation()
+
+    workbook.close()
 
 test()
