@@ -70,6 +70,12 @@ class DegreeToREBA:
         # leg_scores =[1]
 
         # step 4: Look up score in table _A
+        if neck_scores[0] - 1>2:
+            neck_scores[0] = 3
+        if trunk_scores[0] - 1>4:
+            trunk_scores[0]  = 5
+        if leg_scores[0] - 1>3:
+            leg_scores[0] = 4
         posture_score_a = table_a[neck_scores[0] - 1][trunk_scores[0] - 1][leg_scores[0] - 1]
 
         # step 5: load score

@@ -101,18 +101,19 @@ class WristDegrees:
         return [right_wrist_twist, left_wrist_twist]
 
     def wrist_degrees(self):
-        flex = self.wrist_flex()
-        right_flex = flex[0]
-        left_flex = flex[1]
+        # flex = self.wrist_flex()
+        # right_flex = flex[0]
+        # left_flex = flex[1]
+        #
+        # side = self.wrist_side()
+        # right_side = side[0]
+        # left_side = side[1]
+        #
+        # twist = self.wrist_torsion()
+        # right_twist = side[0]
+        # left_twist = side[1]
 
-        side = self.wrist_side()
-        right_side = side[0]
-        left_side = side[1]
-
-        twist = self.wrist_torsion()
-        right_twist = side[0]
-        left_twist = side[1]
-
-        return [right_flex,left_flex,right_side,left_side,right_twist,left_twist]
+        # return [right_flex,left_flex,right_side,left_side,right_twist,left_twist]
+        return [0,0,0,0,0,0]
 
 
